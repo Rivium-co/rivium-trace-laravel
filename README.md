@@ -30,8 +30,21 @@ Add to `.env`:
 RIVIUMTRACE_API_KEY=rv_live_your_api_key_here
 RIVIUMTRACE_SERVER_SECRET=rv_srv_your_secret_here
 RIVIUMTRACE_ENVIRONMENT=production
-RIVIUMTRACE_RELEASE=0.1.0
+RIVIUMTRACE_RELEASE=0.1.2
 ```
+
+### Self-Hosted
+
+If you're running [RiviumTrace Self-Hosted](https://github.com/Rivium-co/rivium-selfhosted), add `RIVIUMTRACE_API_URL` pointing to your server:
+
+```env
+RIVIUMTRACE_API_URL=http://your-server:3001
+RIVIUMTRACE_API_KEY=rv_live_your_api_key_here
+RIVIUMTRACE_SERVER_SECRET=rv_srv_your_secret_here
+RIVIUMTRACE_ENVIRONMENT=production
+```
+
+Everything else works the same — error tracking, logging, APM, middleware.
 
 ## Usage
 
@@ -168,6 +181,7 @@ RiviumTrace::reportPerformanceSpan(
 | Key | Env Var | Default | Description |
 |-----|---------|---------|-------------|
 | `api_key` | `RIVIUMTRACE_API_KEY` | `''` | API key (rv_live_xxx / rv_test_xxx) |
+| `api_url` | `RIVIUMTRACE_API_URL` | `https://trace.rivium.co` | API URL — set for self-hosted only |
 | `server_secret` | `RIVIUMTRACE_SERVER_SECRET` | `''` | Server secret (rv_srv_xxx) |
 | `enabled` | `RIVIUMTRACE_ENABLED` | `true` | Enable/disable SDK |
 | `environment` | `RIVIUMTRACE_ENVIRONMENT` | `APP_ENV` | Environment name |
