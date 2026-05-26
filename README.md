@@ -33,7 +33,7 @@ RIVIUMTRACE_ENVIRONMENT=production
 RIVIUMTRACE_RELEASE=0.1.2
 ```
 
-### Self-Hosted
+### Initialize the SDK (Advanced: Self-Hosted)
 
 If you're running [RiviumTrace Self-Hosted](https://github.com/Rivium-co/rivium-selfhosted), add `RIVIUMTRACE_API_URL` pointing to your server:
 
