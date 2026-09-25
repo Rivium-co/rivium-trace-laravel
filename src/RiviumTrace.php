@@ -52,6 +52,12 @@ class RiviumTrace
                 ]),
             ]);
             $err->addLaravelContext();
+
+            $err = $this->applyBeforeSend($err);
+            if ($err === null) {
+                return;
+            }
+
             $this->dispatch($err);
         } catch (\Throwable $e) {
             $this->debugLog('Error capturing exception: ' . $e->getMessage());
@@ -75,10 +81,44 @@ class RiviumTrace
                 ]),
             ]);
             $err->addLaravelContext();
+
+            $err = $this->applyBeforeSend($err);
+            if ($err === null) {
+                return;
+            }
+
             $this->dispatch($err);
         } catch (\Throwable $e) {
             $this->debugLog('Error capturing message: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Runs the configured before_send hook, if any.
+     *
+     * Returns the error to send, or null to drop it. A hook that throws must
+     * not lose the error or take the app down with it, so the original is sent
+     * and the failure is logged in debug mode.
+     */
+    private function applyBeforeSend(RiviumTraceError $err): ?RiviumTraceError
+    {
+        $hook = $this->config->beforeSend;
+        if (! is_callable($hook)) {
+            return $err;
+        }
+
+        try {
+            $result = $hook($err);
+        } catch (\Throwable $e) {
+            $this->debugLog('before_send threw, sending the error unchanged: ' . $e->getMessage());
+            return $err;
+        }
+
+        if ($result === null || $result === false) {
+            return null;
+        }
+
+        return $result instanceof RiviumTraceError ? $result : $err;
     }
 
     public function addBreadcrumb(array|Breadcrumb $breadcrumb): void

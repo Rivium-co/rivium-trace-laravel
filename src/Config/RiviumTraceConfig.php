@@ -6,7 +6,7 @@ use InvalidArgumentException;
 
 class RiviumTraceConfig
 {
-    const SDK_VERSION = '0.1.0';
+    const SDK_VERSION = '0.2.0';
     const PLATFORM = 'laravel';
 
     public readonly string $apiKey;
@@ -24,6 +24,16 @@ class RiviumTraceConfig
     public readonly array $performance;
     public readonly array $middleware;
     public readonly array $exceptionHandler;
+    /**
+     * Last look at an error before it leaves the process.
+     *
+     * Receives the RiviumTraceError and returns it to send, a modified one, or
+     * null to drop it — the hook to scrub a token out of a URL, remove a
+     * header, or discard noise. Same contract as the Node SDK's beforeSend.
+     *
+     * @var null|callable(\RiviumTrace\Models\RiviumTraceError): (?\RiviumTrace\Models\RiviumTraceError)
+     */
+    public $beforeSend;
 
     public function __construct(array $config)
     {
@@ -42,6 +52,8 @@ class RiviumTraceConfig
         $this->performance = $config['performance'] ?? [];
         $this->middleware = $config['middleware'] ?? [];
         $this->exceptionHandler = $config['exception_handler'] ?? [];
+        $beforeSend = $config['before_send'] ?? null;
+        $this->beforeSend = is_callable($beforeSend) ? $beforeSend : null;
 
         if ($this->enabled && $this->apiKey !== '' && $this->serverSecret !== '') {
             $this->validate();
