@@ -68,10 +68,37 @@ try {
         'extra' => ['order_id' => $orderId],
     ]);
 }
+```
 
+### Messages
+
+`captureMessage()` records a message in the **Messages** list of Rivium Trace,
+not as an issue. It posts to `POST {api_url}/api/messages`.
+
+```php
 RiviumTrace::captureMessage('Payment processed', [
+    'level' => 'info',                  // 'debug' | 'info' | 'warning' | 'error'
     'extra' => ['amount' => 99.99],
+    'tags'  => ['plan' => 'pro'],
 ]);
+```
+
+- `level` defaults to `info`. `warn` is sent as `warning`; `fatal` and
+  `critical` as `error`; anything unknown as `info`.
+- The current user's `id` (from `setUser()`) is sent as `user_id`, and the 10
+  most recent breadcrumbs go with the message.
+- `sample_rate`, rate limiting and `before_send` apply to messages as they do
+  to errors. `before_send` receives a `RiviumTraceMessage` for messages and a
+  `RiviumTraceError` for exceptions, so type-hint both (or neither):
+
+```php
+use RiviumTrace\Laravel\Models\RiviumTraceError;
+use RiviumTrace\Laravel\Models\RiviumTraceMessage;
+
+config(['riviumtrace.before_send' => function (RiviumTraceError|RiviumTraceMessage $event) {
+    $event->message = preg_replace('/token=\w+/', 'token=[REDACTED]', $event->message);
+    return $event;
+}]);
 ```
 
 ### Breadcrumbs

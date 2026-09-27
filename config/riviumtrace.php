@@ -19,9 +19,10 @@ return [
     // Error capture sample rate (0.0 to 1.0)
     'sample_rate' => env('RIVIUMTRACE_SAMPLE_RATE', 1.0),
 
-    // Last look at an error before it is sent. Return the error to send it,
-    // a modified one, or null to drop it - for scrubbing a token out of a URL
-    // or discarding noise. Set it in a service provider, since a closure
+    // Last look at an error or message before it is sent. Receives a
+    // RiviumTraceError (exceptions) or a RiviumTraceMessage (captureMessage).
+    // Return it to send it, a modified one, or null to drop it - for scrubbing
+    // a token out of a URL or discarding noise. Set it in a service provider, since a closure
     // cannot live in a cached config file:
     //
     //   config(['riviumtrace.before_send' => function ($error) {

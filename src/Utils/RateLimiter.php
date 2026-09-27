@@ -4,6 +4,7 @@ namespace RiviumTrace\Laravel\Utils;
 
 use Illuminate\Support\Facades\Cache;
 use RiviumTrace\Laravel\Models\RiviumTraceError;
+use RiviumTrace\Laravel\Models\RiviumTraceMessage;
 
 class RateLimiter
 {
@@ -23,6 +24,21 @@ class RateLimiter
     public function shouldSendError(RiviumTraceError $error): array
     {
         $key = $this->fingerprint($error);
+
+        try {
+            return $this->evaluateWithCache($key);
+        } catch (\Throwable) {
+            return $this->evaluateLocally($key);
+        }
+    }
+
+    /**
+     * Messages share the total budget with errors, and are counted per message
+     * text and level, apart from errors with the same text.
+     */
+    public function shouldSendMessage(RiviumTraceMessage $message): array
+    {
+        $key = md5("message_{$message->level}_{$message->message}_{$message->platform}_{$message->environment}");
 
         try {
             return $this->evaluateWithCache($key);

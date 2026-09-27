@@ -124,6 +124,7 @@ class RiviumTraceConfigTest extends TestCase
         ]);
 
         $this->assertEquals('https://trace.rivium.co/api/errors', $config->getErrorEndpoint());
+        $this->assertEquals('https://trace.rivium.co/api/messages', $config->getMessageEndpoint());
         $this->assertEquals('https://trace.rivium.co/api/logs/ingest', $config->getLogIngestEndpoint());
         $this->assertEquals('https://trace.rivium.co/api/logs/ingest/batch', $config->getLogBatchEndpoint());
         $this->assertEquals('https://trace.rivium.co/api/performance/spans/batch', $config->getPerformanceBatchEndpoint());
@@ -155,7 +156,7 @@ class RiviumTraceConfigTest extends TestCase
 
     public function test_sdk_version_and_platform_constants(): void
     {
-        $this->assertEquals('0.1.0', RiviumTraceConfig::SDK_VERSION);
+        $this->assertEquals('0.2.1', RiviumTraceConfig::SDK_VERSION);
         $this->assertEquals('laravel', RiviumTraceConfig::PLATFORM);
     }
 }

@@ -9,6 +9,7 @@ use RiviumTrace\Laravel\Logging\LogService;
 use RiviumTrace\Laravel\Models\Breadcrumb;
 use RiviumTrace\Laravel\Models\BreadcrumbManager;
 use RiviumTrace\Laravel\Models\RiviumTraceError;
+use RiviumTrace\Laravel\Models\RiviumTraceMessage;
 use RiviumTrace\Laravel\Performance\PerformanceClient;
 use RiviumTrace\Laravel\Performance\PerformanceSpan;
 use RiviumTrace\Laravel\Utils\RateLimiter;
@@ -64,6 +65,13 @@ class RiviumTrace
         }
     }
 
+    /**
+     * Sends a message to Rivium Trace's Messages list (POST /api/messages).
+     *
+     * Options: `level` ('debug', 'info', 'warning' or 'error'; 'warn' becomes
+     * 'warning', 'fatal' and 'critical' become 'error', anything else 'info'),
+     * `extra` (array) and `tags` (string map). A message is never an issue.
+     */
     public function captureMessage(string $message, array $options = []): void
     {
         if (! $this->canCapture()) {
@@ -71,23 +79,26 @@ class RiviumTrace
         }
 
         try {
-            $err = RiviumTraceError::fromMessage($message, [
+            $msg = RiviumTraceMessage::create($message, [
+                'level' => $options['level'] ?? null,
                 'environment' => $this->config->environment,
                 'release' => $this->config->release,
-                'extra' => array_merge($options['extra'] ?? [], [
-                    'breadcrumbs' => $this->breadcrumbs?->getRecent(10),
+                'user_id' => $this->usrCtx['id'] ?? null,
+                'tags' => $options['tags'] ?? [],
+                'breadcrumbs' => $this->breadcrumbs?->getRecent(10) ?? [],
+                'extra' => array_merge($options['extra'] ?? [], array_filter([
                     'request_context' => $this->reqCtx,
                     'user_context' => $this->usrCtx,
-                ]),
+                ], fn ($val) => $val !== null)),
             ]);
-            $err->addLaravelContext();
+            $msg->addLaravelContext();
 
-            $err = $this->applyBeforeSend($err);
-            if ($err === null) {
+            $msg = $this->applyBeforeSend($msg);
+            if ($msg === null) {
                 return;
             }
 
-            $this->dispatch($err);
+            $this->dispatchMessage($msg);
         } catch (\Throwable $e) {
             $this->debugLog('Error capturing message: ' . $e->getMessage());
         }
@@ -96,29 +107,35 @@ class RiviumTrace
     /**
      * Runs the configured before_send hook, if any.
      *
-     * Returns the error to send, or null to drop it. A hook that throws must
-     * not lose the error or take the app down with it, so the original is sent
-     * and the failure is logged in debug mode.
+     * It sees errors (RiviumTraceError) and messages (RiviumTraceMessage).
+     * Returns the event to send, or null to drop it. A hook that throws must
+     * not lose the event or take the app down with it, so the original is sent
+     * and the failure is logged in debug mode. A replacement of a different
+     * type than the event is ignored and the original is sent.
+     *
+     * @template T of RiviumTraceError|RiviumTraceMessage
+     * @param T $event
+     * @return T|null
      */
-    private function applyBeforeSend(RiviumTraceError $err): ?RiviumTraceError
+    private function applyBeforeSend(RiviumTraceError|RiviumTraceMessage $event): RiviumTraceError|RiviumTraceMessage|null
     {
         $hook = $this->config->beforeSend;
         if (! is_callable($hook)) {
-            return $err;
+            return $event;
         }
 
         try {
-            $result = $hook($err);
+            $result = $hook($event);
         } catch (\Throwable $e) {
-            $this->debugLog('before_send threw, sending the error unchanged: ' . $e->getMessage());
-            return $err;
+            $this->debugLog('before_send threw, sending the event unchanged: ' . $e->getMessage());
+            return $event;
         }
 
         if ($result === null || $result === false) {
             return null;
         }
 
-        return $result instanceof RiviumTraceError ? $result : $err;
+        return $result instanceof $event ? $result : $event;
     }
 
     public function addBreadcrumb(array|Breadcrumb $breadcrumb): void
@@ -325,6 +342,26 @@ class RiviumTrace
 
         if (! $resp['success']) {
             $this->debugLog('Failed to send error: ' . ($resp['error'] ?? 'unknown'));
+        }
+    }
+
+    /** Same path as dispatch(): rate limit, then a synchronous HTTP send. */
+    private function dispatchMessage(RiviumTraceMessage $message): void
+    {
+        if (! $this->config->isEnabled()) {
+            return;
+        }
+
+        $check = $this->limiter->shouldSendMessage($message);
+        if (! $check['allowed']) {
+            $this->debugLog("Rate limited: {$check['reason']}");
+            return;
+        }
+
+        $resp = $this->http->sendMessage($message->toArray());
+
+        if (! $resp['success']) {
+            $this->debugLog('Failed to send message: ' . ($resp['error'] ?? 'unknown'));
         }
     }
 

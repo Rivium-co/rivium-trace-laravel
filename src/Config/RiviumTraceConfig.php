@@ -6,7 +6,7 @@ use InvalidArgumentException;
 
 class RiviumTraceConfig
 {
-    const SDK_VERSION = '0.2.0';
+    const SDK_VERSION = '0.2.1';
     const PLATFORM = 'laravel';
 
     public readonly string $apiKey;
@@ -25,13 +25,15 @@ class RiviumTraceConfig
     public readonly array $middleware;
     public readonly array $exceptionHandler;
     /**
-     * Last look at an error before it leaves the process.
+     * Last look at an event before it leaves the process.
      *
-     * Receives the RiviumTraceError and returns it to send, a modified one, or
-     * null to drop it — the hook to scrub a token out of a URL, remove a
-     * header, or discard noise. Same contract as the Node SDK's beforeSend.
+     * Receives a RiviumTraceError (captured exceptions) or a RiviumTraceMessage
+     * (captureMessage) and returns it to send, a modified one, or null to drop
+     * it — the hook to scrub a token out of a URL, remove a header, or discard
+     * noise. Same contract as the Node SDK's beforeSend. Both types have
+     * public `message`, `environment`, `extra` and `url` properties.
      *
-     * @var null|callable(\RiviumTrace\Models\RiviumTraceError): (?\RiviumTrace\Models\RiviumTraceError)
+     * @var null|callable(\RiviumTrace\Laravel\Models\RiviumTraceError|\RiviumTrace\Laravel\Models\RiviumTraceMessage): (\RiviumTrace\Laravel\Models\RiviumTraceError|\RiviumTrace\Laravel\Models\RiviumTraceMessage|null)
      */
     public $beforeSend;
 
@@ -79,6 +81,11 @@ class RiviumTraceConfig
     public function getErrorEndpoint(): string
     {
         return $this->apiUrl . '/api/errors';
+    }
+
+    public function getMessageEndpoint(): string
+    {
+        return $this->apiUrl . '/api/messages';
     }
 
     public function getLogIngestEndpoint(): string

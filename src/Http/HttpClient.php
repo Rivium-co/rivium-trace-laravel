@@ -17,11 +17,15 @@ class HttpClient
     private RiviumTraceConfig $config;
     private const RETRY_LIMIT = 3;
 
-    public function __construct(RiviumTraceConfig $config)
+    /**
+     * @param callable|null $handler Guzzle handler to send requests with;
+     *                               tests pass a MockHandler. Defaults to Guzzle's.
+     */
+    public function __construct(RiviumTraceConfig $config, ?callable $handler = null)
     {
         $this->config = $config;
 
-        $stack = HandlerStack::create();
+        $stack = HandlerStack::create($handler);
         $stack->push(Middleware::retry(
             $this->buildRetryDecider(),
             $this->buildRetryDelay()
@@ -44,6 +48,15 @@ class HttpClient
     public function sendError(array $payload): array
     {
         return $this->doPost('/api/errors', $payload);
+    }
+
+    /**
+     * Messages from captureMessage(). They are not errors, so they go to the
+     * messages endpoint and never become an issue.
+     */
+    public function sendMessage(array $payload): array
+    {
+        return $this->doPost('/api/messages', $payload);
     }
 
     public function sendLog(array $payload): bool
