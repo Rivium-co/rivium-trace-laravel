@@ -256,6 +256,23 @@ Ignore specific paths:
 ],
 ```
 
+Errors and messages raised during a request carry `request_context`:
+
+| Key | Example |
+|-----|---------|
+| `method` | `GET` |
+| `path` | `/users/42` |
+| `url` | `https://shop.test/users/42?tab=orders` |
+| `route` | `/users/{user}` (the matched route's URI) |
+| `route_name` | `users.show` (named routes only) |
+| `status_code` | `503` (errors that carry an HTTP status) |
+| `user_agent` | the client's user agent |
+| `ip` | the client's IP |
+
+Request bodies, headers and cookies are never sent. Every event also carries
+`laravel_context` (`php_version`, `laravel_version`, `sapi`, `server_software`,
+`memory_peak`, `platform`).
+
 ## License
 
 MIT

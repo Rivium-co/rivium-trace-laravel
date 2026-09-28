@@ -26,13 +26,7 @@ class RiviumTraceMiddleware
 
         $t0 = microtime(true);
 
-        $this->sdk->setRequestContext([
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'path' => $request->path(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        $this->sdk->setRequestContext(self::describeRequest($request));
 
         $this->sdk->addBreadcrumb(
             Breadcrumb::http($request->method(), $request->path())
@@ -95,6 +89,39 @@ class RiviumTraceMiddleware
         }
 
         return $response;
+    }
+
+    /**
+     * The request_context attached to errors and messages raised during this
+     * request. `path` starts with "/", `route` is the matched route's URI
+     * template ("/users/{user}") and `route_name` its name, when there is one.
+     * `user_agent` is the client's; the event's own user_agent stays the SDK's.
+     * No bodies, no query values, no headers.
+     */
+    public static function describeRequest(Request $request): array
+    {
+        $ctx = [
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'path' => '/' . ltrim($request->path(), '/'),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ];
+
+        try {
+            $route = $request->route();
+            if ($route instanceof \Illuminate\Routing\Route) {
+                $ctx['route'] = '/' . ltrim($route->uri(), '/');
+                $name = $route->getName();
+                // Laravel names unnamed routes "generated::…" when routes are cached.
+                if (is_string($name) && $name !== '' && ! str_starts_with($name, 'generated::')) {
+                    $ctx['route_name'] = $name;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return $ctx;
     }
 
     private function skipPath(string $path): bool

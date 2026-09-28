@@ -73,9 +73,11 @@ class RiviumTraceError
             'ip' => $request->ip(),
             'query' => $request->query(),
             'headers' => $this->filterHeaders($request->headers->all()),
+            'user_agent' => $request->userAgent(),
         ];
         $this->url = $request->fullUrl();
-        $this->userAgent = $request->userAgent() ?: self::buildUserAgent();
+        // user_agent stays the SDK's ("RiviumTrace-SDK/x (laravel; …)"): Rivium
+        // reads the SDK version from it. The client's is in extra.request.
 
         return $this;
     }

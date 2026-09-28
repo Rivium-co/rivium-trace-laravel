@@ -14,6 +14,7 @@ use RiviumTrace\Laravel\Performance\PerformanceClient;
 use RiviumTrace\Laravel\Performance\PerformanceSpan;
 use RiviumTrace\Laravel\Utils\RateLimiter;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class RiviumTrace
 {
@@ -48,7 +49,7 @@ class RiviumTrace
                 'release' => $this->config->release,
                 'extra' => array_merge($options['extra'] ?? [], [
                     'breadcrumbs' => $this->breadcrumbs?->getRecent(10),
-                    'request_context' => $this->reqCtx,
+                    'request_context' => $this->requestContextFor($exception),
                     'user_context' => $this->usrCtx,
                 ]),
             ]);
@@ -363,6 +364,24 @@ class RiviumTrace
         if (! $resp['success']) {
             $this->debugLog('Failed to send message: ' . ($resp['error'] ?? 'unknown'));
         }
+    }
+
+    /**
+     * The request context for an exception: what the middleware recorded, plus
+     * the HTTP status the exception maps to (`status_code`) when it carries one.
+     */
+    private function requestContextFor(\Throwable $e): ?array
+    {
+        $ctx = $this->reqCtx;
+        if ($ctx === null) {
+            return null;
+        }
+
+        if ($e instanceof HttpExceptionInterface && ! isset($ctx['status_code'])) {
+            $ctx['status_code'] = $e->getStatusCode();
+        }
+
+        return $ctx;
     }
 
     private function shouldIgnore(\Throwable $e): bool
