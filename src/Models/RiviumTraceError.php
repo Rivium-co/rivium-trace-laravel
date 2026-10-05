@@ -16,6 +16,12 @@ class RiviumTraceError
     public string $userAgent;
     public string $url;
 
+    /**
+     * Identifies this one event: every attempt to send it carries the same
+     * id, so the server counts it once.
+     */
+    public ?string $eventId = null;
+
     public static function fromThrowable(\Throwable $e, array $opts = []): self
     {
         $instance = new self();
@@ -96,6 +102,8 @@ class RiviumTraceError
 
     public function toArray(): array
     {
+        $this->eventId ??= self::newEventId();
+
         $data = $this->extra;
         $crumbs = $data['breadcrumbs'] ?? null;
         unset($data['breadcrumbs']);
@@ -111,7 +119,18 @@ class RiviumTraceError
             'extra' => ! empty($data) ? $data : null,
             'user_agent' => $this->userAgent,
             'url' => $this->url,
+            'event_id' => $this->eventId,
         ], fn ($val) => $val !== null);
+    }
+
+    /** A random UUID (version 4). */
+    private static function newEventId(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($bytes), 4));
     }
 
     private static function now(): string

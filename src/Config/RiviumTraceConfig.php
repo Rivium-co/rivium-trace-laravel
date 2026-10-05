@@ -6,7 +6,7 @@ use InvalidArgumentException;
 
 class RiviumTraceConfig
 {
-    const SDK_VERSION = '0.2.3';
+    const SDK_VERSION = '0.2.4';
     const PLATFORM = 'laravel';
 
     public readonly string $apiKey;

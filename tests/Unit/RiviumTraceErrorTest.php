@@ -105,4 +105,16 @@ class RiviumTraceErrorTest extends TestCase
 
         $this->assertEquals('RuntimeException', $error->message);
     }
+
+    public function test_every_error_has_its_own_event_id_that_stays_the_same(): void
+    {
+        $first = RiviumTraceError::fromThrowable(new \RuntimeException('boom'));
+        $second = RiviumTraceError::fromThrowable(new \RuntimeException('boom'));
+
+        $id = $first->toArray()['event_id'];
+
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $id);
+        $this->assertSame($id, $first->toArray()['event_id']);
+        $this->assertNotSame($id, $second->toArray()['event_id']);
+    }
 }
