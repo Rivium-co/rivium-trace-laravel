@@ -217,7 +217,6 @@ RiviumTrace::reportPerformanceSpan(
 | `debug` | `RIVIUMTRACE_DEBUG` | `false` | Debug mode |
 | `timeout` | `RIVIUMTRACE_TIMEOUT` | `5` | HTTP timeout (seconds) |
 | `performance.enabled` | `RIVIUMTRACE_PERFORMANCE_ENABLED` | `true` | Enable APM |
-| `logging.enabled` | `RIVIUMTRACE_LOGGING_ENABLED` | `true` | Enable logging |
 | `logging.source_id` | `RIVIUMTRACE_LOG_SOURCE_ID` | `null` | Log source ID |
 
 ## Ignored Exceptions
