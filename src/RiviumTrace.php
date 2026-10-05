@@ -27,18 +27,38 @@ class RiviumTrace
     private ?array $reqCtx = null;
     private ?array $usrCtx = null;
     private bool $ready = false;
+    /**
+     * Exceptions already handed to captureException(), by object identity.
+     * Weak: an entry goes away with its exception, so nothing accumulates in
+     * long-running workers.
+     *
+     * @var \WeakMap<\Throwable, true>
+     */
+    private \WeakMap $captured;
 
     public function __construct(RiviumTraceConfig $config)
     {
         $this->config = $config;
+        $this->captured = new \WeakMap();
 
         if ($config->isEnabled()) {
             $this->boot();
         }
     }
 
+    /**
+     * Reports an exception as an error event. The same exception object is
+     * reported once: when it is captured again (by the request middleware and
+     * then by Laravel's exception handler, or by hand before a rethrow), the
+     * later calls do nothing. Two separate exceptions are always two events.
+     */
     public function captureException(\Throwable $exception, array $options = []): void
     {
+        if (! $this->ready || isset($this->captured[$exception])) {
+            return;
+        }
+        $this->captured[$exception] = true;
+
         if (! $this->canCapture() || $this->shouldIgnore($exception)) {
             return;
         }

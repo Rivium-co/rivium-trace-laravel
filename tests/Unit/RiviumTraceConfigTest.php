@@ -156,7 +156,7 @@ class RiviumTraceConfigTest extends TestCase
 
     public function test_sdk_version_and_platform_constants(): void
     {
-        $this->assertEquals('0.2.2', RiviumTraceConfig::SDK_VERSION);
+        $this->assertEquals('0.2.3', RiviumTraceConfig::SDK_VERSION);
         $this->assertEquals('laravel', RiviumTraceConfig::PLATFORM);
     }
 }
